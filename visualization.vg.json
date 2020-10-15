@@ -1,41 +1,40 @@
 {
   "$schema": "https://vega.github.io/schema/vega/v5.json",
-  "description": "A simple bar chart with embedded data.",
+  "description": "A bar chart that sorts the y-values by the x-values.",
   "background": "white",
   "padding": 5,
-  "height": 200,
+  "width": 200,
   "style": "cell",
   "data": [
     {
       "name": "source_0",
-      "values": [
-        {"a": "A", "b": 28},
-        {"a": "B", "b": 55},
-        {"a": "C", "b": 43},
-        {"a": "D", "b": 91},
-        {"a": "E", "b": 81},
-        {"a": "F", "b": 53},
-        {"a": "G", "b": 19},
-        {"a": "H", "b": 87},
-        {"a": "I", "b": 52}
-      ]
+      "url": "data/population.json",
+      "format": {"type": "json"},
+      "transform": [{"type": "filter", "expr": "datum.year == 2000"}]
     },
     {
       "name": "data_0",
       "source": "source_0",
       "transform": [
         {
+          "type": "aggregate",
+          "groupby": ["age"],
+          "ops": ["sum"],
+          "fields": ["people"],
+          "as": ["sum_people"]
+        },
+        {
           "type": "filter",
-          "expr": "isValid(datum[\"b\"]) && isFinite(+datum[\"b\"])"
+          "expr": "isValid(datum[\"sum_people\"]) && isFinite(+datum[\"sum_people\"])"
         }
       ]
     }
   ],
   "signals": [
-    {"name": "x_step", "value": 20},
+    {"name": "y_step", "value": 17},
     {
-      "name": "width",
-      "update": "bandspace(domain('x').length, 0.1, 0.05) * x_step"
+      "name": "height",
+      "update": "bandspace(domain('y').length, 0.1, 0.05) * y_step"
     }
   ],
   "marks": [
@@ -49,12 +48,12 @@
           "fill": {"value": "#4c78a8"},
           "ariaRoleDescription": {"value": "bar"},
           "description": {
-            "signal": "\"a: \" + (isValid(datum[\"a\"]) ? datum[\"a\"] : \"\"+datum[\"a\"]) + \"; b: \" + (format(datum[\"b\"], \"\"))"
+            "signal": "\"age: \" + (isValid(datum[\"age\"]) ? datum[\"age\"] : \"\"+datum[\"age\"]) + \"; population: \" + (format(datum[\"sum_people\"], \"\"))"
           },
-          "x": {"scale": "x", "field": "a"},
-          "width": {"scale": "x", "band": 1},
-          "y": {"scale": "y", "field": "b"},
-          "y2": {"scale": "y", "value": 0}
+          "x": {"scale": "x", "field": "sum_people"},
+          "x2": {"scale": "x", "value": 0},
+          "y": {"scale": "y", "field": "age"},
+          "height": {"scale": "y", "band": 1}
         }
       }
     }
@@ -62,28 +61,32 @@
   "scales": [
     {
       "name": "x",
-      "type": "band",
-      "domain": {"data": "data_0", "field": "a", "sort": true},
-      "range": {"step": {"signal": "x_step"}},
-      "paddingInner": 0.1,
-      "paddingOuter": 0.05
+      "type": "linear",
+      "domain": {"data": "data_0", "field": "sum_people"},
+      "range": [0, {"signal": "width"}],
+      "nice": true,
+      "zero": true
     },
     {
       "name": "y",
-      "type": "linear",
-      "domain": {"data": "data_0", "field": "b"},
-      "range": [{"signal": "height"}, 0],
-      "nice": true,
-      "zero": true
+      "type": "band",
+      "domain": {
+        "data": "source_0",
+        "field": "age",
+        "sort": {"op": "sum", "field": "people", "order": "descending"}
+      },
+      "range": {"step": {"signal": "y_step"}},
+      "paddingInner": 0.1,
+      "paddingOuter": 0.05
     }
   ],
   "axes": [
     {
-      "scale": "y",
-      "orient": "left",
-      "gridScale": "x",
+      "scale": "x",
+      "orient": "bottom",
+      "gridScale": "y",
       "grid": true,
-      "tickCount": {"signal": "ceil(height/40)"},
+      "tickCount": {"signal": "ceil(width/40)"},
       "domain": false,
       "labels": false,
       "aria": false,
@@ -96,20 +99,13 @@
       "scale": "x",
       "orient": "bottom",
       "grid": false,
-      "title": "a",
-      "labelAngle": 0,
-      "labelBaseline": "top",
+      "title": "population",
+      "labelFlush": true,
+      "labelOverlap": true,
+      "tickCount": {"signal": "ceil(width/40)"},
       "zindex": 0
     },
-    {
-      "scale": "y",
-      "orient": "left",
-      "grid": false,
-      "title": "b",
-      "labelOverlap": true,
-      "tickCount": {"signal": "ceil(height/40)"},
-      "zindex": 0
-    }
+    {"scale": "y", "orient": "left", "grid": false, "title": "age", "zindex": 0}
   ],
   "config": {}
 }
